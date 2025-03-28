@@ -5,6 +5,9 @@
 #if D3D9_PROXY
 #include "proxy.h"
 #endif
+#if D3D11_PROXY
+#include "d3d11proxy.h"
+#endif
 
 std::string dir;
 std::string base;
@@ -70,6 +73,9 @@ BOOL APIENTRY DllMain(HMODULE hModule, DWORD reason, LPVOID rev) {
     case DLL_PROCESS_ATTACH:
 #if D3D9_PROXY
         Proxy::Init(hModule);
+#endif
+#if D3D11_PROXY
+        D3D11Proxy::Init(hModule);
 #endif
         Init();
         Attach();
