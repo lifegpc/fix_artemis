@@ -1,0 +1,47 @@
+name: Build Artemis
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build ${{ matrix.platform }}
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: [Win32, x64]
+
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+        fetch-depth: 0
+
+    - name: Create Build Directory
+      run: cmake -E make_directory ${{github.workspace}}/build/${{ matrix.platform }}
+
+    - name: Configure CMake
+      working-directory: ${{github.workspace}}/build/${{ matrix.platform }}
+      run: |
+        cmake ${{github.workspace}} -A ${{ matrix.platform }}
+
+    - name: Build
+      working-directory: ${{github.workspace}}/build/${{ matrix.platform }}
+      run: |
+        cmake --build . --config Release
+
+    - name: Install
+      working-directory: ${{github.workspace}}/build/${{ matrix.platform }}
+      run: |
+        cmake --install . --prefix ${{github.workspace}}/install/${{ matrix.platform }} --config Release
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: fix-artemis-${{ matrix.platform }}
+        path: ${{github.workspace}}/install/${{ matrix.platform }}
