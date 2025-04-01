@@ -31,7 +31,48 @@ HANDLE WINAPI HookedCreateFileW(LPCWSTR lpFileName, DWORD dwDesiredAccess, DWORD
     return TrueCreateFileW(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
 }
 
+void RunExe(std::string name) {
+    std::wstring wpath;
+    if (wchar_util::str_to_wstr(wpath, name, CP_UTF8)) {
+        STARTUPINFOW si = { sizeof(si) };
+        PROCESS_INFORMATION pi;
+        si.dwFlags = STARTF_USESHOWWINDOW;
+        si.wShowWindow = SW_SHOWNORMAL;
+        wchar_t* wp = new wchar_t[wpath.size() + 1000];
+        wcscpy_s(wp, wpath.size() + 1000, wpath.c_str());
+        BOOL ret = CreateProcessW(wpath.c_str(), NULL, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+        if (ret) {
+            CloseHandle(pi.hThread);
+            CloseHandle(pi.hProcess);
+        }
+        delete[] wp;
+    } else {
+        STARTUPINFOA si = { sizeof(si) };
+        PROCESS_INFORMATION pi;
+        si.dwFlags = STARTF_USESHOWWINDOW;
+        si.wShowWindow = SW_SHOWNORMAL;
+        BOOL ret = CreateProcessA(name.c_str(), NULL, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
+        if (ret) {
+            CloseHandle(pi.hThread);
+            CloseHandle(pi.hProcess);
+        }
+    }
+}
+
 void Init() {
+    char** args;
+    int argc = 0;
+    if (wchar_util::getArgv(args, argc)) {
+        if (argc > 1) {
+            std::string arg = args[1];
+            if (arg.find(".exe") != std::string::npos) {
+                RunExe(arg);
+                wchar_util::freeArgv(args, argc);
+                ExitProcess(0);
+            }
+        }
+        wchar_util::freeArgv(args, argc);
+    }
     WCHAR path[MAX_PATH];
     if (!GetModuleFileNameW(NULL, path, MAX_PATH)) {
         return;
